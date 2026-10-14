@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プロポーズ体験ゲーム - Forever & Always</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Great+Vibes&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        romantic: {
+                            50: '#fff0f3',
+                            100: '#ffccd5',
+                            200: '#ffb3c1',
+                            300: '#ff85a1',
+                            400: '#ff4d6d',
+                            500: '#c9184a',
+                            600: '#a4133c',
+                            700: '#800f2f',
+                            800: '#590d22',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Zen Maru Gothic"', 'sans-serif'],
+                        cursive: ['"Great Vibes"', 'cursive']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Zen Maru Gothic', sans-serif;
+            background: linear-gradient(135deg, #ffe5ec 0%, #ffc2d1 50%, #ffe5ec 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .font-cursive {
+            font-family: 'Great Vibes', cursive;
+        }
+
+        /* Heart floating background animation */
+        .bg-heart {
+            position: absolute;
+            color: rgba(255, 182, 193, 0.4);
+            animation: floatUp 12s infinite linear;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(105vh) scale(0.5) rotate(0deg);
+                opacity: 0;
+            }
+            20% { opacity: 0.8; }
+            80% { opacity: 0.8; }
+            100% {
+                transform: translateY(-10vh) scale(1.3) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* Glassmorphism Card Effect */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 20px 40px rgba(201, 24, 74, 0.15);
+        }
+
+        /* Pulse glow for main romantic elements */
+        .glow-pulse {
+            animation: glow 2s infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                box-shadow: 0 0 15px rgba(255, 77, 109, 0.4), 0 0 30px rgba(255, 77, 109, 0.2);
+            }
+            to {
+                box-shadow: 0 0 25px rgba(255, 77, 109, 0.8), 0 0 50px rgba(255, 77, 109, 0.4);
+            }
+        }
+
+        /* Smooth choice selection effect */
+        .choice-card {
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .choice-card:hover {
+            transform: translateY(-6px) scale(1.02);
+        }
+        .choice-card.selected {
+            border-color: #ff4d6d;
+            background-color: #fff0f3;
+            box-shadow: 0 0 20px rgba(255, 77, 109, 0.3);
+        }
+
+        /* Runaway NO button smooth repositioning */
+        #btn-no {
+            transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+    </style>
+</head>
+<body class="relative flex flex-col justify-between min-h-screen text-gray-800 select-none overflow-x-hidden">
+
+    <!-- Floating Background Hearts Container -->
+    <div id="hearts-bg-container" class="fixed inset-0 pointer-events-none overflow-hidden z-0"></div>
+
+    <!-- Header Navigation Bar -->
+    <header class="relative z-10 w-full p-4 flex justify-between items-center max-w-4xl mx-auto">
+        <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-heart text-romantic-500 text-2xl animate-bounce"></i>
+            <span class="font-bold text-lg md:text-xl text-romantic-700 tracking-wide">Proposal Game</span>
+        </div>
+        
+        <div class="flex items-center space-x-2">
+            <!-- Audio Toggle Button -->
+            <button id="btn-audio" class="px-3 py-1.5 bg-white/80 hover:bg-white text-romantic-600 rounded-full text-xs md:text-sm font-semibold shadow-md transition flex items-center gap-1.5 border border-romantic-200">
+                <i id="audio-icon" class="fa-solid fa-volume-high"></i>
+                <span id="audio-text">BGM ON</span>
+            </button>
+            <!-- GitHub Guide Modal Trigger Button -->
+            <button onclick="toggleGithubModal(true)" class="px-3 py-1.5 bg-romantic-500 hover:bg-romantic-600 text-white rounded-full text-xs md:text-sm font-semibold shadow-md transition flex items-center gap-1">
+                <i class="fa-brands fa-github text-base"></i>
+                <span>GitHub Pages公開方法</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="relative z-10 flex-1 flex items-center justify-center p-4">
+        <div class="w-full max-w-2xl">
+            
+            <!-- STEP 0: START / TITLE SCREEN -->
+            <div id="step-start" class="glass-card rounded-3xl p-6 md:p-10 text-center transition-all duration-500 transform">
+                <div class="mb-4 inline-block px-4 py-1.5 bg-romantic-100 text-romantic-600 rounded-full font-bold text-sm tracking-wider uppercase">
+                    Interactive Love Story
+                </div>
+                <h1 class="text-3xl md:text-5xl font-extrabold text-romantic-700 mb-2 leading-tight">
+                    プロポーズ体験ゲーム
+                </h1>
+                <p class="font-cursive text-3xl md:text-4xl text-romantic-400 mb-6">
+                    Will You Marry Me?
+                </p>
+                
+                <div class="my-8 relative">
+                    <div class="w-32 h-32 md:w-40 md:h-40 mx-auto rounded-full bg-gradient-to-tr from-romantic-300 to-romantic-100 flex items-center justify-center shadow-inner relative glow-pulse">
+                        <i class="fa-solid fa-gem text-5xl md:text-6xl text-romantic-500 animate-pulse"></i>
+                    </div>
+                </div>
+
+                <p class="text-gray-600 mb-8 max-w-md mx-auto text-sm md:text-base leading-relaxed">
+                    最高のシチュエーションと想いを込めたプレゼントを選び、運命の言葉を伝えましょう！あなただけの最高のハッピーエンドを目指して…✨
+                </p>
+
+                <button onclick="nextStep(1)" class="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-romantic-400 to-romantic-600 hover:from-romantic-500 hover:to-romantic-700 text-white font-bold text-lg rounded-2xl shadow-lg hover:shadow-xl transition transform active:scale-95 flex items-center justify-center gap-3 mx-auto">
+                    <span>ストーリーを始める</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- STEP 1: PLACE SELECTION -->
+            <div id="step-1" class="glass-card rounded-3xl p-6 md:p-8 hidden transition-all duration-500">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-xs font-bold text-romantic-500 bg-romantic-100 px-3 py-1 rounded-full">STEP 1 / 3</span>
+                    <span class="text-xs text-gray-500">シチュエーション選び</span>
+                </div>
+                
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2 text-center">
+                    どこでプロポーズする？
+                </h2>
+                <p class="text-gray-600 text-center text-sm mb-6">
+                    二人の思い出に残る特別なロケーションを選んでください。
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <!-- Option A -->
+                    <div onclick="selectChoice('location', 'restaurant', this)" class="choice-card border-2 border-transparent bg-white/70 rounded-2xl p-4 text-center cursor-pointer hover:border-romantic-300">
+                        <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-amber-100 text-amber-500 flex items-center justify-center text-2xl">
+                            <i class="fa-solid fa-wine-glass"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800 mb-1">高級レストラン</h3>
+                        <p class="text-xs text-gray-500">きらめく夜景と極上のディナーで最高のロマンチックを演出</p>
+                    </div>
+
+                    <!-- Option B -->
+                    <div onclick="selectChoice('location', 'beach', this)" class="choice-card border-2 border-transparent bg-white/70 rounded-2xl p-4 text-center cursor-pointer hover:border-romantic-300">
+                        <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center text-2xl">
+                            <i class="fa-solid fa-umbrella-beach"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800 mb-1">夕暮れのビーチ</h3>
+                        <p class="text-xs text-gray-500">波の音と美しいサンセットに包まれる感動的な瞬間</p>
+                    </div>
+
+                    <!-- Option C -->
+                    <div onclick="selectChoice('location', 'home', this)" class="choice-card border-2 border-transparent bg-white/70 rounded-2xl p-4 text-center cursor-pointer hover:border-romantic-300">
+                        <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-rose-100 text-rose-500 flex items-center justify-center text-2xl">
+                            <i class="fa-solid fa-house-chimney-heart"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800 mb-1">くつろぎのお家</h3>
+                        <p class="text-xs text-gray-500">飾らない日常の中で伝える、あたたかく誠実な愛</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <button onclick="nextStep(0)" class="px-5 py-2.5 text-gray-500 hover:text-gray-700 text-sm font-semibold">
+                        戻る
+                    </button>
+                    <button id="btn-step1-next" onclick="nextStep(2)" disabled class="px-8 py-3 bg-gray-300 text-gray-500 font-bold rounded-xl shadow cursor-not-allowed transition">
+                        次へ進む
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 2: GIFT SELECTION -->
+            <div id="step-2" class="glass-card rounded-3xl p-6 md:p-8 hidden transition-all duration-500">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-xs font-bold text-romantic-500 bg-romantic-100 px-3 py-1 rounded-full">STEP 2 / 3</span>
+                    <span class="text-xs text-gray-500">贈り物選び</span>
+                </div>
+
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2 text-center">
+                    渡すプレゼントは？
+                </h2>
+                <p class="text-gray-600 text-center text-sm mb-6">
+                    想いを込めた特別な品を選びましょう。
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <!-- Option A -->
+                    <div onclick="selectChoice('gift', 'ring', this)" class="choice-card border-2 border-transparent bg-white/70 rounded-2xl p-4 text-center cursor-pointer hover:border-romantic-300">
+                        <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center text-2xl">
+                            <i class="fa-solid fa-ring"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800 mb-1">ダイヤの婚約指輪</h3>
+                        <p class="text-xs text-gray-500">永遠の輝きを秘めた定番にして究極のシンボル</p>
+                    </div>
+
+                    <!-- Option B -->
+                    <div onclick="selectChoice('gift', 'album', this)" class="choice-card border-2 border-transparent bg-white/70 rounded-2xl p-4 text-center cursor-pointer hover:border-romantic-300">
+                        <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center text-2xl">
+                            <i class="fa-solid fa-book-bookmark"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800 mb-1">手作りフォトアルバム</h3>
+                        <p class="text-xs text-gray-500">二人の歩んできた思い出と未来へのメッセージ</p>
+                    </div>
+
+                    <!-- Option C (Funny) -->
+                    <div onclick="selectChoice('gift', 'sword', this)" class="choice-card border-2 border-transparent bg-white/70 rounded-2xl p-4 text-center cursor-pointer hover:border-romantic-300">
+                        <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-purple-100 text-purple-500 flex items-center justify-center text-2xl">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800 mb-1">伝説の聖剣</h3>
+                        <p class="text-xs text-gray-500">「この剣にかけて、君を一生守り抜くことを誓う！」</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <button onclick="nextStep(1)" class="px-5 py-2.5 text-gray-500 hover:text-gray-700 text-sm font-semibold">
+                        戻る
+                    </button>
+                    <button id="btn-step2-next" onclick="nextStep(3)" disabled class="px-8 py-3 bg-gray-300 text-gray-500 font-bold rounded-xl shadow cursor-not-allowed transition">
+                        次へ進む
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 3: THE BIG QUESTION (Interactive proposal choice) -->
+            <div id="step-3" class="glass-card rounded-3xl p-6 md:p-8 hidden transition-all duration-500 relative">
+                <div class="text-center mb-6">
+                    <span id="selected-summary-badge" class="inline-block text-xs font-bold text-romantic-600 bg-romantic-100 px-4 py-1.5 rounded-full mb-3">
+                        場所: 高級レストラン × 贈り物: ダイヤの指輪
+                    </span>
+                    <h2 id="proposal-heading" class="text-2xl md:text-4xl font-extrabold text-romantic-700 leading-tight">
+                        僕と結婚してください！
+                    </h2>
+                    <p class="text-gray-600 text-sm mt-2">
+                        これからもずっと一緒に笑い合っていきたいです。
+                    </p>
+                </div>
+
+                <div id="interactive-area" class="relative my-10 py-12 px-4 border-2 border-dashed border-romantic-200 rounded-2xl bg-white/40 flex flex-col sm:flex-row items-center justify-center gap-6 min-h-[220px]">
+                    <!-- YES Button -->
+                    <button id="btn-yes" onclick="acceptProposal()" class="w-48 py-4 bg-gradient-to-r from-romantic-500 to-romantic-600 hover:from-romantic-600 hover:to-romantic-700 text-white font-extrabold text-xl rounded-2xl shadow-xl hover:shadow-2xl transition transform hover:scale-105 active:scale-95 glow-pulse z-20 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-heart"></i>
+                        <span>はい！（YES）</span>
+                    </button>
+
+                    <!-- NO Button (The Runaway Button) -->
+                    <button id="btn-no" onmouseover="dodgeNoButton()" onclick="handleNoClick()" class="w-48 py-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-lg rounded-2xl shadow transition duration-150 z-10 flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-xmark"></i>
+                        <span id="no-text">いいえ</span>
+                    </button>
+                </div>
+
+                <p id="no-hint-text" class="text-center text-xs text-romantic-400 min-h-[20px] font-medium">
+                    ※ 運命の選択です…！
+                </p>
+            </div>
+
+            <!-- STEP 4: FINAL CELEBRATION / SUMMARY CARD -->
+            <div id="step-final" class="glass-card rounded-3xl p-6 md:p-10 text-center hidden transition-all duration-700">
+                <div class="inline-block p-4 bg-romantic-100 rounded-full text-romantic-500 text-4xl mb-4 animate-bounce">
+                    <i class="fa-solid fa-hands-holding-heart"></i>
+                </div>
+
+                <h1 class="text-3xl md:text-5xl font-black text-romantic-600 mb-2">
+                    HAPPY ENDING!
+                </h1>
+                <p class="font-cursive text-3xl md:text-4xl text-romantic-400 mb-6">
+                    Forever & Always
+                </p>
+
+                <div class="bg-white/90 rounded-2xl p-6 shadow-inner text-left max-w-md mx-auto mb-6 border border-romantic-100">
+                    <h3 class="text-xs font-bold text-romantic-500 uppercase tracking-widest mb-3 text-center">― プロポーズの記録 ―</h3>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+                            <span class="text-gray-500"><i class="fa-solid fa-location-dot mr-1.5 text-romantic-400"></i>舞台:</span>
+                            <span id="final-location" class="font-bold text-gray-800">高級レストラン</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+                            <span class="text-gray-500"><i class="fa-solid fa-gift mr-1.5 text-romantic-400"></i>プレゼント:</span>
+                            <span id="final-gift" class="font-bold text-gray-800">ダイヤの指輪</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+                            <span class="text-gray-500"><i class="fa-solid fa-face-smile-beam mr-1.5 text-romantic-400"></i>迷った回数:</span>
+                            <span id="final-dodge-count" class="font-bold text-romantic-600">0 回</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500"><i class="fa-solid fa-heart-circle-check mr-1.5 text-romantic-400"></i>判定:</span>
+                            <span id="final-rating" class="font-bold text-amber-500">相性1000%の最高の二人！</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p id="final-comment" class="text-gray-600 text-sm md:text-base mb-8 max-w-md mx-auto leading-relaxed italic">
+                    「あなたの愛と決断に乾杯！二人で素晴らしい未来を紡いでいってくださいね。」
+                </p>
+
+                <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                    <button onclick="shareResult()" class="px-6 py-3.5 bg-sky-500 hover:bg-sky-600 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                        <i class="fa-brands fa-x-twitter"></i>
+                        <span>結果を共有する</span>
+                    </button>
+                    <button onclick="resetGame()" class="px-6 py-3.5 bg-gray-700 hover:bg-gray-800 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-right"></i>
+                        <span>もう一度プレイ</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="relative z-10 w-full p-4 text-center text-xs text-romantic-700/70 font-medium">
+        Made with <i class="fa-solid fa-heart text-romantic-500"></i> for your special moment.
+    </footer>
+
+    <!-- MODAL: GitHub Pages Deployment Guide -->
+    <div id="github-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="toggleGithubModal(false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center text-xl">
+                    <i class="fa-brands fa-github"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg text-gray-900">GitHub Pagesでの公開方法</h3>
+                    <p class="text-xs text-gray-500">数分で無料でWebサイトとして公開できます</p>
+                </div>
+            </div>
+
+            <ol class="space-y-4 text-sm text-gray-700 list-decimal list-inside leading-relaxed mb-6">
+                <li class="pl-1">
+                    <strong class="text-gray-900">GitHubでリポジトリを作成:</strong><br>
+                    <span class="text-xs text-gray-500 pl-4 block">GitHubにログインし、「New repository」をクリック。リポジトリ名（例: <code class="bg-gray-100 px-1 py-0.5 rounded text-romantic-600">propose-game</code>）を入力して作成します。</span>
+                </li>
+                <li class="pl-1">
+                    <strong class="text-gray-900">`index.html` として保存:</strong><br>
+                    <span class="text-xs text-gray-500 pl-4 block">このページのすべてのコードをコピーし、ファイル名を <code class="bg-gray-100 px-1 py-0.5 rounded text-romantic-600">index.html</code> にして保存します。</span>
+                </li>
+                <li class="pl-1">
+                    <strong class="text-gray-900">ファイルをアップロード:</strong><br>
+                    <span class="text-xs text-gray-500 pl-4 block">作成したリポジトリ画面で「Uploading an existing file」を選び、<code class="bg-gray-100 px-1 py-0.5 rounded">index.html</code> をドラッグ＆ドロップしてCommitします。</span>
+                </li>
+                <li class="pl-1">
+                    <strong class="text-gray-900">GitHub Pagesを有効化:</strong><br>
+                    <span class="text-xs text-gray-500 pl-4 block">リポジトリの **Settings** ➔ **Pages** を開き、SourceのBranchを `main`（または `master`）の `/ (root)` に設定して「Save」を押します。</span>
+                </li>
+            </ol>
+
+            <div class="p-3 bg-romantic-50 rounded-xl border border-romantic-100 text-xs text-romantic-700 mb-6">
+                <i class="fa-solid fa-circle-info mr-1"></i> 数分待つと <code class="font-bold">https://ユーザー名.github.io/リポジトリ名/</code> で公開されます！
+            </div>
+
+            <button onclick="toggleGithubModal(false)" class="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white font-bold rounded-xl transition">
+                閉じる
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript Game Logic -->
+    <script>
+        // Game State Variables
+        const state = {
+            step: 0,
+            location: null,
+            gift: null,
+            dodgeCount: 0,
+            audioEnabled: true
+        };
+
+        // Text data mappings
+        const locationsMap = {
+            restaurant: { name: '高級レストラン', icon: 'fa-wine-glass', desc: 'きらめく夜景が最高の雰囲気を醸し出しています。' },
+            beach: { name: '夕暮れのビーチ', icon: 'fa-umbrella-beach', desc: 'オレンジ色の波音が穏やかに響き渡っています。' },
+            home: { name: 'くつろぎのお家', icon: 'fa-house-chimney-heart', desc: '温かいカフェオレの香りとリラックスした空間です。' }
+        };
+
+        const giftsMap = {
+            ring: { name: 'ダイヤの婚約指輪', icon: 'fa-ring' },
+            album: { name: '手作りフォトアルバム', icon: 'fa-book-bookmark' },
+            sword: { name: '伝説の聖剣', icon: 'fa-wand-magic-sparkles' }
+        };
+
+        const noButtonTexts = [
+            "いいえ",
+            "えっ？ほんとに？",
+            "考え直して！",
+            "押しちゃダメ！",
+            "逃げます！",
+            "「はい」を選んで！",
+            "押せるかな？",
+            "無理です！",
+            "諦めて「はい」にしよう！"
+        ];
+
+        // Web Audio API Sound Synthesizer (No external sound files required)
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) {
+                    audioCtx = new AudioContext();
+                }
+            }
+        }
+
+        // Play Synthesized Sound Effects
+        function playSound(type) {
+            if (!state.audioEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'select') {
+                    // Soft high chime
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.15); // E5
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'dodge') {
+                    // Playful low boing
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(120, now + 0.15);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'fanfare') {
+                    // Happy celebratory chord progression
+                    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                    notes.forEach((freq, idx) => {
+                        const noteOsc = audioCtx.createOscillator();
+                        const noteGain = audioCtx.createGain();
+                        noteOsc.type = 'triangle';
+                        noteOsc.frequency.value = freq;
+                        noteOsc.connect(noteGain);
+                        noteGain.connect(audioCtx.destination);
+
+                        const start = now + (idx * 0.08);
+                        noteGain.gain.setValueAtTime(0.2, start);
+                        noteGain.gain.exponentialRampToValueAtTime(0.001, start + 0.6);
+                        noteOsc.start(start);
+                        noteOsc.stop(start + 0.6);
+                    });
+                }
+            } catch (e) {
+                console.log('Audio playback error:', e);
+            }
+        }
+
+        // Toggle Audio Setting
+        document.getElementById('btn-audio').addEventListener('click', () => {
+            state.audioEnabled = !state.audioEnabled;
+            const icon = document.getElementById('audio-icon');
+            const text = document.getElementById('audio-text');
+
+            if (state.audioEnabled) {
+                icon.className = 'fa-solid fa-volume-high';
+                text.textContent = 'BGM ON';
+                playSound('select');
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark';
+                text.textContent = 'MUTE';
+            }
+        });
+
+        // Transition between step cards
+        function nextStep(stepNumber) {
+            playSound('select');
+            
+            // Hide current step card
+            const currentCard = document.querySelector('.glass-card:not(.hidden)');
+            if (currentCard) {
+                currentCard.classList.add('hidden');
+            }
+
+            state.step = stepNumber;
+
+            // Show target step card
+            let targetId = `step-${stepNumber}`;
+            if (stepNumber === 0) targetId = 'step-start';
+            if (stepNumber === 4) targetId = 'step-final';
+
+            const targetCard = document.getElementById(targetId);
+            if (targetCard) {
+                targetCard.classList.remove('hidden');
+            }
+
+            // Update Step 3 text based on user selections
+            if (stepNumber === 3) {
+                setupProposalStep();
+            }
+        }
+
+        // Handle user options selection in Step 1 & Step 2
+        function selectChoice(category, value, element) {
+            playSound('select');
+            state[category] = value;
+
+            // Update UI card selection states
+            const parent = element.parentElement;
+            const cards = parent.querySelectorAll('.choice-card');
+            cards.forEach(card => card.classList.remove('selected'));
+            element.classList.add('selected');
+
+            // Enable Next Button
+            if (category === 'location') {
+                const btn = document.getElementById('btn-step1-next');
+                btn.disabled = false;
+                btn.className = 'px-8 py-3 bg-gradient-to-r from-romantic-500 to-romantic-600 hover:from-romantic-600 hover:to-romantic-700 text-white font-bold rounded-xl shadow-lg transition transform active:scale-95 cursor-pointer';
+            } else if (category === 'gift') {
+                const btn = document.getElementById('btn-step2-next');
+                btn.disabled = false;
+                btn.className = 'px-8 py-3 bg-gradient-to-r from-romantic-500 to-romantic-600 hover:from-romantic-600 hover:to-romantic-700 text-white font-bold rounded-xl shadow-lg transition transform active:scale-95 cursor-pointer';
+            }
+        }
+
+        // Configure Proposal Step Heading & Summary
+        function setupProposalStep() {
+            const loc = locationsMap[state.location] || locationsMap.restaurant;
+            const gift = giftsMap[state.gift] || giftsMap.ring;
+
+            const badge = document.getElementById('selected-summary-badge');
+            badge.textContent = `舞台: ${loc.name} × 贈り物: ${gift.name}`;
+
+            const heading = document.getElementById('proposal-heading');
+            if (state.gift === 'sword') {
+                heading.textContent = `この聖剣を誓いとして、一生僕に護らせてください！`;
+            } else if (state.gift === 'album') {
+                heading.textContent = `これからの思い出も全部、僕と一緒に作ってくれますか？`;
+            } else {
+                heading.textContent = `僕と結婚してください！`;
+            }
+
+            // Reset NO button position and scaling
+            const noBtn = document.getElementById('btn-no');
+            noBtn.style.position = 'static';
+            noBtn.style.transform = 'scale(1)';
+            document.getElementById('no-text').textContent = 'いいえ';
+            state.dodgeCount = 0;
+        }
+
+        // Runaway NO Button Gimmick
+        function dodgeNoButton() {
+            const noBtn = document.getElementById('btn-no');
+            const container = document.getElementById('interactive-area');
+
+            // Sound
+            playSound('dodge');
+            state.dodgeCount++;
+
+            // Calculate boundary within interactive container
+            const containerRect = container.getBoundingClientRect();
+            const btnRect = noBtn.getBoundingClientRect();
+
+            const maxX = containerRect.width - btnRect.width - 20;
+            const maxY = containerRect.height - btnRect.height - 20;
+
+            const randomX = Math.max(10, Math.floor(Math.random() * maxX));
+            const randomY = Math.max(10, Math.floor(Math.random() * maxY));
+
+            noBtn.style.position = 'absolute';
+            noBtn.style.left = `${randomX}px`;
+            noBtn.style.top = `${randomY}px`;
+
+            // Dynamic text change
+            const textIdx = Math.min(state.dodgeCount, noButtonTexts.length - 1);
+            document.getElementById('no-text').textContent = noButtonTexts[textIdx];
+
+            // Scale down button slightly every time it dodges
+            const newScale = Math.max(0.6, 1 - state.dodgeCount * 0.05);
+            noBtn.style.transform = `scale(${newScale})`;
+
+            // Show friendly hint
+            const hint = document.getElementById('no-hint-text');
+            if (state.dodgeCount > 3) {
+                hint.textContent = '「いいえ」が逃げています！素直に「はい」を押しましょう💕';
+            }
+        }
+
+        function handleNoClick() {
+            dodgeNoButton();
+        }
+
+        // YES Celebration Action
+        function acceptProposal() {
+            playSound('fanfare');
+
+            // Trigger Confetti Party Explosion
+            if (window.confetti) {
+                // Heart Confetti Explosion
+                const count = 200;
+                const defaults = {
+                    origin: { y: 0.7 }
+                };
+
+                function fire(particleRatio, opts) {
+                    confetti(Object.assign({}, defaults, opts, {
+                        particleCount: Math.floor(count * particleRatio)
+                    }));
+                }
+
+                fire(0.25, {
+                    spread: 26,
+                    startVelocity: 55,
+                    colors: ['#ff4d6d', '#ff85a1', '#ffffff']
+                });
+                fire(0.2, {
+                    spread: 60,
+                    colors: ['#ffccd5', '#c9184a']
+                });
+                fire(0.35, {
+                    spread: 100,
+                    decay: 0.91,
+                    scalar: 0.8
+                });
+                fire(0.1, {
+                    spread: 120,
+                    startVelocity: 25,
+                    decay: 0.92,
+                    colors: ['#ffe5ec', '#ff4d6d']
+                });
+            }
+
+            // Set final summary card details
+            const loc = locationsMap[state.location] || locationsMap.restaurant;
+            const gift = giftsMap[state.gift] || giftsMap.ring;
+
+            document.getElementById('final-location').textContent = loc.name;
+            document.getElementById('final-gift').textContent = gift.name;
+            document.getElementById('final-dodge-count').textContent = `${state.dodgeCount} 回`;
+
+            const ratingElem = document.getElementById('final-rating');
+            if (state.dodgeCount === 0) {
+                ratingElem.textContent = '相思相愛！迷いなき運命のペア 💖';
+            } else if (state.dodgeCount < 5) {
+                ratingElem.textContent = 'ちょっぴりツンデレな最高の二人 ✨';
+            } else {
+                ratingElem.textContent = '逃げぬ恋の粘り勝ち！大恋愛達成 🏆';
+            }
+
+            const commentElem = document.getElementById('final-comment');
+            if (state.gift === 'sword') {
+                commentElem.textContent = `「伝説の聖剣と共に手を取り合う二人の未来に、光あれ！どんな冒険（日常）も笑顔で乗り越えられますね！」`;
+            } else if (state.gift === 'album') {
+                commentElem.textContent = `「二人のアルバムの新しい１ページ目が、今日ここから始まります。末永くお幸せに！」`;
+            } else {
+                commentElem.textContent = `「輝く指輪とともに誓われた想い。最高の祝福をお贈りします！末永くお幸せに！」`;
+            }
+
+            // Transition to Final Step
+            setTimeout(() => {
+                nextStep(4);
+            }, 600);
+        }
+
+        // Reset Game Loop
+        function resetGame() {
+            state.location = null;
+            state.gift = null;
+            state.dodgeCount = 0;
+
+            // Reset buttons state
+            document.getElementById('btn-step1-next').disabled = true;
+            document.getElementById('btn-step1-next').className = 'px-8 py-3 bg-gray-300 text-gray-500 font-bold rounded-xl shadow cursor-not-allowed transition';
+            document.getElementById('btn-step2-next').disabled = true;
+            document.getElementById('btn-step2-next').className = 'px-8 py-3 bg-gray-300 text-gray-500 font-bold rounded-xl shadow cursor-not-allowed transition';
+
+            const cards = document.querySelectorAll('.choice-card');
+            cards.forEach(c => c.classList.remove('selected'));
+
+            nextStep(0);
+        }
+
+        // Share result to X/Twitter
+        function shareResult() {
+            const loc = locationsMap[state.location]?.name || '特別なお店';
+            const gift = giftsMap[state.gift]?.name || 'プレゼント';
+            const text = encodeURIComponent(`【プロポーズ体験ゲーム】\n舞台: ${loc}\n贈り物: ${gift}\n迷った回数: ${state.dodgeCount}回\n\n見事にプロポーズを成功させました！💕\n`);
+            const url = encodeURIComponent(window.location.href);
+            window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+        }
+
+        // Modal Toggle
+        function toggleGithubModal(show) {
+            playSound('select');
+            const modal = document.getElementById('github-modal');
+            if (show) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        // Create Floating Background Hearts
+        function generateBackgroundHearts() {
+            const container = document.getElementById('hearts-bg-container');
+            const heartIcons = ['fa-heart', 'fa-heart text-pink-300', 'fa-heart text-rose-300'];
+
+            for (let i = 0; i < 20; i++) {
+                const heart = document.createElement('i');
+                const randomIcon = heartIcons[Math.floor(Math.random() * heartIcons.length)];
+                heart.className = `fa-solid ${randomIcon} bg-heart`;
+                
+                heart.style.left = `${Math.random() * 100}vw`;
+                heart.style.fontSize = `${Math.random() * 20 + 12}px`;
+                heart.style.animationDuration = `${Math.random() * 8 + 8}s`;
+                heart.style.animationDelay = `${Math.random() * 5}s`;
+
+                container.appendChild(heart);
+            }
+        }
+
+        // Initialize Background Hearts on Page Load
+        window.onload = function() {
+            generateBackgroundHearts();
+        };
+    </script>
+</body>
+</html>
